@@ -8,15 +8,125 @@
         AllowsTransparency="True"
         Background="Transparent"
         ShowInTaskbar="False"
-        Topmost="True">
-  <Border BorderBrush="#9ad178" BorderThickness="2" Background="#CC000000">
+        Topmost="True"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        RenderOptions.BitmapScalingMode="NearestNeighbor">
+  <Border BorderBrush="#9ad178" BorderThickness="2" Background="#CC000000" Padding="18">
     <Grid>
-      <TextBlock Text="00:00"
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="68*" />
+        <ColumnDefinition Width="2" />
+        <ColumnDefinition Width="32*" />
+      </Grid.ColumnDefinitions>
+
+      <TextBlock Grid.Column="0"
+                 Text="{Binding ClockText}"
                  Foreground="#9ad178"
                  FontFamily="Consolas"
-                 FontSize="96"
+                 FontSize="118"
+                 FontWeight="Bold"
                  HorizontalAlignment="Center"
                  VerticalAlignment="Center" />
+
+      <Rectangle Grid.Column="1" Fill="#9ad178" />
+
+      <Grid Grid.Column="2" Margin="22,0,0,0">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="*" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="{Binding Header}"
+                   Foreground="#9ad178"
+                   FontFamily="Consolas"
+                   FontSize="18"
+                   FontWeight="Bold"
+                   TextTrimming="CharacterEllipsis" />
+
+        <Grid Grid.Row="1" Margin="0,14,0,12">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="120" />
+            <ColumnDefinition Width="16" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+
+          <Border Grid.Column="0"
+                  Width="120"
+                  Height="120"
+                  BorderBrush="#9ad178"
+                  BorderThickness="2"
+                  Background="#111111">
+            <Grid>
+              <Rectangle Fill="#191919" />
+              <TextBlock Text="ALBUM"
+                         Foreground="#5f8f4d"
+                         FontFamily="Consolas"
+                         FontSize="18"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center" />
+            </Grid>
+          </Border>
+
+          <Grid Grid.Column="2" VerticalAlignment="Center">
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0"
+                       Text="{Binding Title}"
+                       Foreground="#d7d7d7"
+                       FontFamily="Consolas"
+                       FontSize="28"
+                       FontWeight="Bold"
+                       TextTrimming="CharacterEllipsis" />
+            <TextBlock Grid.Row="1"
+                       Text="{Binding Artist}"
+                       Foreground="#9ad178"
+                       FontFamily="Consolas"
+                       FontSize="21"
+                       Margin="0,8,0,0"
+                       TextTrimming="CharacterEllipsis" />
+            <TextBlock Grid.Row="2"
+                       Text="{Binding Album}"
+                       Foreground="#5f8f4d"
+                       FontFamily="Consolas"
+                       FontSize="18"
+                       Margin="0,6,0,0"
+                       TextTrimming="CharacterEllipsis" />
+          </Grid>
+        </Grid>
+
+        <Grid Grid.Row="2">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="10" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+
+          <Grid x:Name="ProgressTrack" Grid.Row="0" Background="#4a4a4a" ClipToBounds="True">
+            <Rectangle HorizontalAlignment="Left"
+                       Fill="#9ad178"
+                       Width="{Binding ProgressPixelWidth}" />
+          </Grid>
+
+          <Grid Grid.Row="1" Margin="0,8,0,0">
+            <TextBlock Text="{Binding ElapsedText}"
+                       Foreground="#d7d7d7"
+                       FontFamily="Consolas"
+                       FontSize="16"
+                       HorizontalAlignment="Left" />
+            <TextBlock Text="{Binding DurationText}"
+                       Foreground="#d7d7d7"
+                       FontFamily="Consolas"
+                       FontSize="16"
+                       HorizontalAlignment="Right" />
+          </Grid>
+        </Grid>
+      </Grid>
     </Grid>
   </Border>
 </Window>
