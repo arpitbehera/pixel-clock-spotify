@@ -7,11 +7,21 @@
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
+        ShowActivated="False"
         ShowInTaskbar="False"
         Topmost="True"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
         RenderOptions.BitmapScalingMode="NearestNeighbor">
+  <Window.ContextMenu>
+    <ContextMenu>
+      <MenuItem Header="Refresh" Click="Refresh_Click" />
+      <MenuItem Header="Config" Click="Config_Click" />
+      <MenuItem x:Name="AlwaysOnTopMenuItem" Header="Always On Top" IsCheckable="True" Click="AlwaysOnTop_Click" />
+      <Separator />
+      <MenuItem Header="Exit" Click="Exit_Click" />
+    </ContextMenu>
+  </Window.ContextMenu>
   <Border BorderBrush="#9ad178" BorderThickness="2" Background="#CC000000" Padding="18">
     <Grid>
       <Grid.ColumnDefinitions>

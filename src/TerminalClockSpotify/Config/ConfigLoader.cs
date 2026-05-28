@@ -18,6 +18,8 @@ public sealed class ConfigLoader
         _path = Path.Combine(rootDirectory, "appsettings.json");
     }
 
+    public string ConfigPath => _path;
+
     public AppConfig Load()
     {
         if (!File.Exists(_path))
