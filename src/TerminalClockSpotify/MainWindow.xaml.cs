@@ -29,6 +29,7 @@ public partial class MainWindow : Window
     private LightweightUpdateScheduler? _lightweightScheduler;
     private DispatcherTimer? _lightweightTimer;
     private DispatcherTimer? _mediaTimer;
+    private SurroundingWindowLayoutService? _surroundingWindowLayoutService;
     private bool _isDragging;
     private bool _isAlbumArtPressed;
     private System.Windows.Point _dragOffset;
@@ -53,7 +54,12 @@ public partial class MainWindow : Window
         DataContext = _viewModel;
         ApplyVisualSettings();
 
-        SourceInitialized += (_, _) => ApplyWindowStyles();
+        SourceInitialized += (_, _) =>
+        {
+            ApplyWindowStyles();
+            _surroundingWindowLayoutService = new SurroundingWindowLayoutService(new WindowInteropHelper(this).Handle, _logger);
+            _surroundingWindowLayoutService.Update(_config.ClickThrough);
+        };
         Loaded += (_, _) =>
         {
             ApplyInitialPlacement();
@@ -62,6 +68,7 @@ public partial class MainWindow : Window
         Closed += (_, _) =>
         {
             StopTimers();
+            _surroundingWindowLayoutService?.Dispose();
             _shutdown.Cancel();
         };
         ProgressTrack.SizeChanged += (_, _) => _viewModel.SetProgressTrackWidth(ProgressTrack.ActualWidth);
@@ -295,6 +302,7 @@ public partial class MainWindow : Window
         Top = bounds.Top;
         Width = bounds.Width;
         Height = bounds.Height;
+        _surroundingWindowLayoutService?.Update(_config.ClickThrough);
     }
 
     private void ApplyWindowStyles()
@@ -309,6 +317,7 @@ public partial class MainWindow : Window
             extendedStyle &= ~WsExTransparent;
 
         SetWindowLong(hwnd, GwlExStyle, extendedStyle);
+        _surroundingWindowLayoutService?.Update(_config.ClickThrough);
     }
 
     private void ApplyVisualSettings()

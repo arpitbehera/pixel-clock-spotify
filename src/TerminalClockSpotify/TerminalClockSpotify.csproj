@@ -24,5 +24,6 @@
     <Compile Remove="MainWindow.xaml.cs" />
     <Compile Remove="Art/AlbumArtBitmapAdapter.cs" />
     <Compile Remove="Media/WindowsMediaSessionService.cs" />
+    <Compile Remove="Placement/SurroundingWindowLayoutService.cs" />
   </ItemGroup>
 </Project>
