@@ -29,6 +29,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private double _progressPixelWidth;
     private bool _isIdle = true;
     private object? _artworkImage;
+    private bool _hasArtwork;
 
     public MainViewModel(
         IMediaSessionService mediaSessionService,
@@ -55,6 +56,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public double ProgressPixelWidth => _progressPixelWidth;
     public bool IsIdle => _isIdle;
     public object? ArtworkImage => _artworkImage;
+    public bool HasArtwork => _hasArtwork;
 
     public void RefreshClock(DateTimeOffset now)
     {
@@ -70,7 +72,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         Set(ref _album, state.Album, nameof(Album));
         Set(ref _durationText, ProgressFormatter.Format(state.Duration), nameof(DurationText));
         Set(ref _isIdle, state.PlaybackKind is MediaPlaybackKind.Stopped or MediaPlaybackKind.Unknown, nameof(IsIdle));
-        Set(ref _artworkImage, _artworkImageProvider?.GetArtworkImage(state.ThumbnailBytes), nameof(ArtworkImage));
+        var artworkImage = _artworkImageProvider?.GetArtworkImage(state.ThumbnailBytes);
+        Set(ref _artworkImage, artworkImage, nameof(ArtworkImage));
+        Set(ref _hasArtwork, artworkImage is not null, nameof(HasArtwork));
 
         _reportedPosition = state.Position;
         _duration = state.Duration;

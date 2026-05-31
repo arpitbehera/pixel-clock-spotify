@@ -98,19 +98,31 @@
                   Background="#111111"
                   MouseLeftButtonDown="AlbumArtFrame_MouseLeftButtonDown">
             <Grid>
-              <Rectangle Fill="#191919" />
-              <Canvas Width="82" Height="82" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <Ellipse Width="82" Height="82" Fill="{DynamicResource DimGreenBrush}" />
-                <Rectangle Canvas.Left="18" Canvas.Top="25" Width="46" Height="7" Fill="#191919" />
-                <Rectangle Canvas.Left="14" Canvas.Top="39" Width="52" Height="7" Fill="#191919" />
-                <Rectangle Canvas.Left="20" Canvas.Top="53" Width="42" Height="7" Fill="#191919" />
-                <Rectangle Canvas.Left="14" Canvas.Top="22" Width="10" Height="4" Fill="#191919" />
-                <Rectangle Canvas.Left="58" Canvas.Top="32" Width="10" Height="4" Fill="#191919" />
-                <Rectangle Canvas.Left="12" Canvas.Top="36" Width="10" Height="4" Fill="#191919" />
-                <Rectangle Canvas.Left="60" Canvas.Top="46" Width="10" Height="4" Fill="#191919" />
-                <Rectangle Canvas.Left="18" Canvas.Top="50" Width="10" Height="4" Fill="#191919" />
-                <Rectangle Canvas.Left="56" Canvas.Top="60" Width="10" Height="4" Fill="#191919" />
-              </Canvas>
+              <Grid>
+                <Grid.Style>
+                  <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Visible" />
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding HasArtwork}" Value="True">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </Grid.Style>
+                <Rectangle Fill="#191919" />
+                <Canvas Width="82" Height="82" HorizontalAlignment="Center" VerticalAlignment="Center">
+                  <Ellipse Width="82" Height="82" Fill="{DynamicResource DimGreenBrush}" />
+                  <Rectangle Canvas.Left="18" Canvas.Top="25" Width="46" Height="7" Fill="#191919" />
+                  <Rectangle Canvas.Left="14" Canvas.Top="39" Width="52" Height="7" Fill="#191919" />
+                  <Rectangle Canvas.Left="20" Canvas.Top="53" Width="42" Height="7" Fill="#191919" />
+                  <Rectangle Canvas.Left="14" Canvas.Top="22" Width="10" Height="4" Fill="#191919" />
+                  <Rectangle Canvas.Left="58" Canvas.Top="32" Width="10" Height="4" Fill="#191919" />
+                  <Rectangle Canvas.Left="12" Canvas.Top="36" Width="10" Height="4" Fill="#191919" />
+                  <Rectangle Canvas.Left="60" Canvas.Top="46" Width="10" Height="4" Fill="#191919" />
+                  <Rectangle Canvas.Left="18" Canvas.Top="50" Width="10" Height="4" Fill="#191919" />
+                  <Rectangle Canvas.Left="56" Canvas.Top="60" Width="10" Height="4" Fill="#191919" />
+                </Canvas>
+              </Grid>
               <Image Source="{Binding ArtworkImage}"
                      Stretch="Fill"
                      RenderOptions.BitmapScalingMode="NearestNeighbor"

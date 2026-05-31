@@ -131,10 +131,12 @@ public sealed class MainViewModelTests
 
         await viewModel.RefreshMediaAsync(CancellationToken.None);
         Assert.Same(expectedArtwork, viewModel.ArtworkImage);
+        Assert.True(viewModel.HasArtwork);
         Assert.Equal([1, 2, 3], artwork.Requests[0]);
 
         await viewModel.RefreshMediaAsync(CancellationToken.None);
         Assert.Null(viewModel.ArtworkImage);
+        Assert.False(viewModel.HasArtwork);
     }
 
     [Fact]
