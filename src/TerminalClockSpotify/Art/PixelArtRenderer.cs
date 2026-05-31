@@ -21,6 +21,23 @@ public static class PixelArtRenderer
         return new BgraImage(source.Width, targetHeight, pixels);
     }
 
+    public static BgraImage CropCenterSquare(BgraImage source)
+    {
+        var side = Math.Min(source.Width, source.Height);
+        if (side == source.Width && side == source.Height)
+            return source;
+
+        var startX = (source.Width - side) / 2;
+        var startY = (source.Height - side) / 2;
+        var pixels = new List<Bgra32>(side * side);
+
+        for (var y = 0; y < side; y++)
+            for (var x = 0; x < side; x++)
+                pixels.Add(source.At(startX + x, startY + y));
+
+        return new BgraImage(side, side, pixels);
+    }
+
     public static BgraImage Downsample(BgraImage source, int targetWidth, int targetHeight)
     {
         var pixels = new List<Bgra32>(targetWidth * targetHeight);
