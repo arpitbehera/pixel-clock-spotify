@@ -1,5 +1,6 @@
 using TerminalClockSpotify.Media;
 using TerminalClockSpotify.ViewModels;
+using TerminalClockSpotify.Art;
 using Xunit;
 
 namespace TerminalClockSpotify.Tests;
@@ -118,10 +119,41 @@ public sealed class MainViewModelTests
         Assert.Equal(10.6, viewModel.ProgressPixelWidth, precision: 4);
     }
 
+    [Fact]
+    public async Task ThumbnailBytesFlowIntoBindableArtworkAndMissingArtworkClearsIt()
+    {
+        var expectedArtwork = new object();
+        var artwork = new FakeArtworkImageProvider(expectedArtwork, null);
+        var service = new FakeMediaSessionService(
+            State(thumbnailBytes: [1, 2, 3]),
+            State(thumbnailBytes: null));
+        var viewModel = new MainViewModel(service, ["Spotify"], artworkImageProvider: artwork);
+
+        await viewModel.RefreshMediaAsync(CancellationToken.None);
+        Assert.Same(expectedArtwork, viewModel.ArtworkImage);
+        Assert.Equal([1, 2, 3], artwork.Requests[0]);
+
+        await viewModel.RefreshMediaAsync(CancellationToken.None);
+        Assert.Null(viewModel.ArtworkImage);
+    }
+
+    [Fact]
+    public async Task TogglePlayPauseDelegatesToMediaSessionService()
+    {
+        var service = new FakeMediaSessionService(State()) { ToggleResult = true };
+        var viewModel = new MainViewModel(service, ["Spotify"]);
+
+        var toggled = await viewModel.TogglePlayPauseAsync(CancellationToken.None);
+
+        Assert.True(toggled);
+        Assert.Equal(1, service.ToggleCalls);
+    }
+
     private static NowPlayingState State(
         double position = 0,
         double duration = 100,
-        MediaPlaybackKind playbackKind = MediaPlaybackKind.Stopped) =>
+        MediaPlaybackKind playbackKind = MediaPlaybackKind.Stopped,
+        byte[]? thumbnailBytes = null) =>
         new(
             "NOW PLAYING ON SPOTIFY",
             "Track",
@@ -130,13 +162,35 @@ public sealed class MainViewModelTests
             TimeSpan.FromSeconds(position),
             TimeSpan.FromSeconds(duration),
             playbackKind,
-            null);
+            thumbnailBytes);
 
     private sealed class FakeMediaSessionService(params NowPlayingState[] states) : IMediaSessionService
     {
         private readonly Queue<NowPlayingState> _states = new(states);
 
+        public bool ToggleResult { get; init; }
+        public int ToggleCalls { get; private set; }
+
         public Task<NowPlayingState> GetNowPlayingAsync(IReadOnlyList<string> spotifyTokens, CancellationToken cancellationToken) =>
             Task.FromResult(_states.Dequeue());
+
+        public Task<bool> TogglePlayPauseAsync(IReadOnlyList<string> spotifyTokens, CancellationToken cancellationToken)
+        {
+            ToggleCalls++;
+            return Task.FromResult(ToggleResult);
+        }
+    }
+
+    private sealed class FakeArtworkImageProvider(params object?[] images) : IArtworkImageProvider
+    {
+        private readonly Queue<object?> _images = new(images);
+
+        public List<byte[]?> Requests { get; } = [];
+
+        public object? GetArtworkImage(byte[]? thumbnailBytes)
+        {
+            Requests.Add(thumbnailBytes);
+            return _images.Dequeue();
+        }
     }
 }

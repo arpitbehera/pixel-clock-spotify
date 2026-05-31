@@ -21,6 +21,7 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <Compile Remove="App.xaml.cs" />
     <Compile Remove="MainWindow.xaml.cs" />
+    <Compile Remove="Art/AlbumArtBitmapAdapter.cs" />
     <Compile Remove="Media/WindowsMediaSessionService.cs" />
   </ItemGroup>
 </Project>

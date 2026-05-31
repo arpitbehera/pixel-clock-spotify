@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using TerminalClockSpotify.Config;
+using TerminalClockSpotify.Art;
 using TerminalClockSpotify.Logging;
 using TerminalClockSpotify.Media;
 using TerminalClockSpotify.State;
@@ -26,8 +27,9 @@ public partial class App : System.Windows.Application
         var config = configLoader.Load();
         var logger = new RollingFileLogger(logRoot);
         var stateStore = new AppStateStore(configRoot);
-        var mediaService = new WindowsMediaSessionService();
-        var viewModel = new MainViewModel(mediaService, config.SpotifySourceAppIdContains);
+        var mediaService = new WindowsMediaSessionService(logger);
+        var artworkImageProvider = new AlbumArtBitmapAdapter(logger);
+        var viewModel = new MainViewModel(mediaService, config.SpotifySourceAppIdContains, artworkImageProvider: artworkImageProvider);
 
         var window = new MainWindow(config, configLoader, stateStore, logger, viewModel);
         window.Show();

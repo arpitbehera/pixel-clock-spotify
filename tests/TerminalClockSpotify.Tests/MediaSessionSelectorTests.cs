@@ -21,7 +21,7 @@ public sealed class MediaSessionSelectorTests
     }
 
     [Fact]
-    public void SelectUsesMostRecentSpotifyWhenNonePlaying()
+    public void SelectPrefersPausedSpotifyOverMoreRecentStoppedSpotify()
     {
         var old = DateTimeOffset.Parse("2026-05-28T10:00:00Z");
         var recent = DateTimeOffset.Parse("2026-05-28T10:10:00Z");
@@ -31,7 +31,21 @@ public sealed class MediaSessionSelectorTests
             new MediaSessionCandidate("Spotify.Store", "Recent", MediaPlaybackKind.Stopped, recent),
         ], ["Spotify"]);
 
-        Assert.Equal("Spotify.Store", selected?.SourceApplicationId);
+        Assert.Equal("Spotify.exe", selected?.SourceApplicationId);
+    }
+
+    [Fact]
+    public void SelectPreservesEnumerationOrderWithinPlaybackKind()
+    {
+        var old = DateTimeOffset.Parse("2026-05-28T10:00:00Z");
+        var recent = DateTimeOffset.Parse("2026-05-28T10:10:00Z");
+
+        var selected = MediaSessionSelector.Select([
+            new MediaSessionCandidate("Spotify.First", "First", MediaPlaybackKind.Paused, old),
+            new MediaSessionCandidate("Spotify.Second", "Second", MediaPlaybackKind.Paused, recent),
+        ], ["Spotify"]);
+
+        Assert.Equal("Spotify.First", selected?.SourceApplicationId);
     }
 
     [Fact]

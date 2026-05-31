@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using TerminalClockSpotify.Art;
 using TerminalClockSpotify.Clock;
 using TerminalClockSpotify.Media;
 
@@ -11,6 +12,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private readonly IMediaSessionService _mediaSessionService;
     private readonly IReadOnlyList<string> _spotifyTokens;
     private readonly Func<TimeSpan> _elapsedTimeProvider;
+    private readonly IArtworkImageProvider? _artworkImageProvider;
     private TimeSpan _reportedPosition;
     private TimeSpan _duration;
     private TimeSpan _baselineAppliedAt;
@@ -26,15 +28,18 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private double _progressRatio;
     private double _progressPixelWidth;
     private bool _isIdle = true;
+    private object? _artworkImage;
 
     public MainViewModel(
         IMediaSessionService mediaSessionService,
         IReadOnlyList<string> spotifyTokens,
-        Func<TimeSpan>? elapsedTimeProvider = null)
+        Func<TimeSpan>? elapsedTimeProvider = null,
+        IArtworkImageProvider? artworkImageProvider = null)
     {
         _mediaSessionService = mediaSessionService;
         _spotifyTokens = spotifyTokens;
         _elapsedTimeProvider = elapsedTimeProvider ?? (() => Stopwatch.GetElapsedTime(0));
+        _artworkImageProvider = artworkImageProvider;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -49,6 +54,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public double ProgressRatio => _progressRatio;
     public double ProgressPixelWidth => _progressPixelWidth;
     public bool IsIdle => _isIdle;
+    public object? ArtworkImage => _artworkImage;
 
     public void RefreshClock(DateTimeOffset now)
     {
@@ -64,6 +70,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         Set(ref _album, state.Album, nameof(Album));
         Set(ref _durationText, ProgressFormatter.Format(state.Duration), nameof(DurationText));
         Set(ref _isIdle, state.PlaybackKind is MediaPlaybackKind.Stopped or MediaPlaybackKind.Unknown, nameof(IsIdle));
+        Set(ref _artworkImage, _artworkImageProvider?.GetArtworkImage(state.ThumbnailBytes), nameof(ArtworkImage));
 
         _reportedPosition = state.Position;
         _duration = state.Duration;
@@ -71,6 +78,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _baselineAppliedAt = _elapsedTimeProvider();
         RefreshProgress();
     }
+
+    public Task<bool> TogglePlayPauseAsync(CancellationToken cancellationToken) =>
+        _mediaSessionService.TogglePlayPauseAsync(_spotifyTokens, cancellationToken);
 
     public void RefreshProgress()
     {

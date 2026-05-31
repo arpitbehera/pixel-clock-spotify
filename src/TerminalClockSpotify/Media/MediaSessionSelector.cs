@@ -9,8 +9,13 @@ public static class MediaSessionSelector
             .ToArray();
 
         return matches
-            .OrderByDescending(session => session.PlaybackKind == MediaPlaybackKind.Playing)
-            .ThenByDescending(session => session.LastUpdated)
+            .OrderBy(session => session.PlaybackKind switch
+            {
+                MediaPlaybackKind.Playing => 0,
+                MediaPlaybackKind.Paused => 1,
+                MediaPlaybackKind.Stopped => 2,
+                _ => 3
+            })
             .FirstOrDefault();
     }
 }
