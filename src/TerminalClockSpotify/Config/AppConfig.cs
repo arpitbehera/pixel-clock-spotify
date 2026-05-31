@@ -15,7 +15,8 @@ public sealed record AppConfig
     public bool ClickThrough { get; init; }
     public double Opacity { get; init; } = 0.80;
     public int ClockUpdateIntervalMs { get; init; } = 1000;
-    public int MediaUpdateIntervalMs { get; init; } = 1000;
+    public int ProgressUpdateIntervalMs { get; init; } = 1000;
+    public int MediaUpdateIntervalMs { get; init; } = 5000;
     public string StartupShortcutName { get; init; } = "TerminalClockSpotify";
     public PaletteConfig Palette { get; init; } = new();
 }

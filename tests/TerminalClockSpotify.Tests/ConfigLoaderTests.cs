@@ -18,6 +18,9 @@ public sealed class ConfigLoaderTests
         Assert.True(config.AlwaysOnTop);
         Assert.Equal(0.50, config.WindowWidthRatio);
         Assert.Equal(0.25, config.WindowHeightRatio);
+        Assert.Equal(1000, config.ClockUpdateIntervalMs);
+        Assert.Equal(1000, config.ProgressUpdateIntervalMs);
+        Assert.Equal(5000, config.MediaUpdateIntervalMs);
         Assert.True(File.Exists(Path.Combine(root.Path, "appsettings.json")));
     }
 
@@ -35,6 +38,26 @@ public sealed class ConfigLoaderTests
         Assert.Equal(0.50, config.WindowWidthRatio);
         Assert.Equal(0.25, config.WindowHeightRatio);
         Assert.Equal(0.80, config.Opacity);
+    }
+
+    [Fact]
+    public void IntervalsBelowLowerBoundsFallBackToDefaults()
+    {
+        using var root = TestDirectory.Create();
+        File.WriteAllText(Path.Combine(root.Path, "appsettings.json"), """
+        {
+          "clockUpdateIntervalMs": 249,
+          "progressUpdateIntervalMs": 249,
+          "mediaUpdateIntervalMs": 999
+        }
+        """);
+        var loader = new ConfigLoader(root.Path);
+
+        var config = loader.Load();
+
+        Assert.Equal(1000, config.ClockUpdateIntervalMs);
+        Assert.Equal(1000, config.ProgressUpdateIntervalMs);
+        Assert.Equal(5000, config.MediaUpdateIntervalMs);
     }
 }
 

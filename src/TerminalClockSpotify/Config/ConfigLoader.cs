@@ -69,10 +69,13 @@ public sealed class ConfigLoader
             FixedWindowWidth = Positive(config.FixedWindowWidth) ? config.FixedWindowWidth : defaults.FixedWindowWidth,
             FixedWindowHeight = Positive(config.FixedWindowHeight) ? config.FixedWindowHeight : defaults.FixedWindowHeight,
             Opacity = Ratio(config.Opacity) ? config.Opacity : defaults.Opacity,
-            ClockUpdateIntervalMs = Positive(config.ClockUpdateIntervalMs)
+            ClockUpdateIntervalMs = config.ClockUpdateIntervalMs >= 250
                 ? config.ClockUpdateIntervalMs
                 : defaults.ClockUpdateIntervalMs,
-            MediaUpdateIntervalMs = Positive(config.MediaUpdateIntervalMs)
+            ProgressUpdateIntervalMs = config.ProgressUpdateIntervalMs >= 250
+                ? config.ProgressUpdateIntervalMs
+                : defaults.ProgressUpdateIntervalMs,
+            MediaUpdateIntervalMs = config.MediaUpdateIntervalMs >= 1000
                 ? config.MediaUpdateIntervalMs
                 : defaults.MediaUpdateIntervalMs,
             StartupShortcutName = string.IsNullOrWhiteSpace(config.StartupShortcutName)
