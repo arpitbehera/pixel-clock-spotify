@@ -58,7 +58,6 @@ public partial class MainWindow : Window
         {
             ApplyWindowStyles();
             _surroundingWindowLayoutService = new SurroundingWindowLayoutService(new WindowInteropHelper(this).Handle, _logger);
-            _surroundingWindowLayoutService.Update(_config.ClickThrough);
         };
         Loaded += (_, _) =>
         {
@@ -317,7 +316,6 @@ public partial class MainWindow : Window
             extendedStyle &= ~WsExTransparent;
 
         SetWindowLong(hwnd, GwlExStyle, extendedStyle);
-        _surroundingWindowLayoutService?.Update(_config.ClickThrough);
     }
 
     private void ApplyVisualSettings()

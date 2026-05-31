@@ -16,6 +16,7 @@ public sealed class SurroundingWindowLayoutService : IDisposable
     private readonly HashSet<IntPtr> _movingWindows = [];
     private readonly Dictionary<IntPtr, DateTimeOffset> _selfInducedMoves = [];
     private readonly List<IntPtr> _hooks = [];
+    private bool _enabled;
 
     public SurroundingWindowLayoutService(IntPtr appletHwnd, RollingFileLogger logger)
     {
@@ -31,16 +32,19 @@ public sealed class SurroundingWindowLayoutService : IDisposable
     {
         if (clickThrough)
         {
+            _enabled = false;
             RemoveHooks();
             return;
         }
 
+        _enabled = true;
         EnsureHooks();
         EnforceAllWindows();
     }
 
     public void Dispose()
     {
+        _enabled = false;
         RemoveHooks();
         _coalesceTimer.Stop();
     }
@@ -96,6 +100,9 @@ public sealed class SurroundingWindowLayoutService : IDisposable
 
         _dispatcher.BeginInvoke(() =>
         {
+            if (!_enabled)
+                return;
+
             if (eventType == EventSystemMoveSizeStart)
             {
                 _movingWindows.Add(hwnd);
@@ -115,6 +122,9 @@ public sealed class SurroundingWindowLayoutService : IDisposable
 
     private void QueueWindow(IntPtr hwnd)
     {
+        if (!_enabled)
+            return;
+
         if (_selfInducedMoves.Remove(hwnd, out var movedAt)
             && DateTimeOffset.UtcNow - movedAt < TimeSpan.FromSeconds(1))
         {
@@ -129,12 +139,18 @@ public sealed class SurroundingWindowLayoutService : IDisposable
     private void ProcessPendingWindows()
     {
         _coalesceTimer.Stop();
+        if (!_enabled)
+            return;
+
         foreach (var hwnd in _pendingWindows.Drain())
             EnforceWindow(hwnd);
     }
 
     private void EnforceAllWindows()
     {
+        if (!_enabled)
+            return;
+
         EnumWindows((hwnd, _) =>
         {
             EnforceWindow(hwnd);
@@ -144,6 +160,9 @@ public sealed class SurroundingWindowLayoutService : IDisposable
 
     private void EnforceWindow(IntPtr hwnd)
     {
+        if (!_enabled)
+            return;
+
         try
         {
             if (!TryGetAppletDisplay(out var appletBounds, out var workArea, out var appletDisplay, out var appletMonitor)
