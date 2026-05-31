@@ -17,6 +17,12 @@ public sealed class WindowsMediaSessionService(RollingFileLogger logger) : IMedi
         var (session, playbackKind) = selected.Value;
         var media = await session.TryGetMediaPropertiesAsync();
         var timeline = session.GetTimelineProperties();
+        var position = TimelinePositionNormalizer.Normalize(
+            timeline.Position,
+            timeline.EndTime,
+            playbackKind,
+            timeline.LastUpdatedTime,
+            DateTimeOffset.UtcNow);
         var title = string.IsNullOrWhiteSpace(media.Title) ? "UNKNOWN TRACK" : media.Title;
         var trackIdentity = $"{session.SourceAppUserModelId}|{title}|{media.Artist}|{media.AlbumTitle}";
         var thumbnailBytes = await ReadThumbnailBytesAsync(media.Thumbnail, trackIdentity);
@@ -26,7 +32,7 @@ public sealed class WindowsMediaSessionService(RollingFileLogger logger) : IMedi
             title,
             media.Artist ?? string.Empty,
             media.AlbumTitle ?? string.Empty,
-            timeline.Position,
+            position,
             timeline.EndTime,
             playbackKind,
             thumbnailBytes);
