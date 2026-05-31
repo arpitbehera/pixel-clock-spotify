@@ -69,6 +69,18 @@ public sealed class SurroundingWindowLayoutPolicyTests
     }
 
     [Fact]
+    public void ChoosesNearbyResizedBelowCandidateOverDistantFullSizeSideCandidate()
+    {
+        var correction = SurroundingWindowLayoutPolicy.ComputeCorrection(
+            new AppBounds(0, 0, 300, 250),
+            new AppBounds(0, 0, 1000, 600),
+            "DISPLAY1",
+            Window(new AppBounds(10, 200, 400, 400)));
+
+        Assert.Equal(new AppBounds(10, 250, 400, 350), correction?.Bounds);
+    }
+
+    [Fact]
     public void ResizesMinimallyWhenNoFullSizeCandidateFits()
     {
         var correction = SurroundingWindowLayoutPolicy.ComputeCorrection(

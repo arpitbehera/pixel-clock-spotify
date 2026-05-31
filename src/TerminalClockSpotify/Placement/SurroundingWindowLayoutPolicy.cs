@@ -52,22 +52,13 @@ public static class SurroundingWindowLayoutPolicy
         if (regions.Length == 0)
             return null;
 
-        var preserved = regions
-            .Where(region => window.Bounds.Width <= region.Width && window.Bounds.Height <= region.Height)
-            .Select(region => FitInside(window.Bounds, region, preserveSize: true))
-            .OrderBy(candidate => MovementSquared(window.Bounds, candidate))
-            .FirstOrDefault();
-
-        if (preserved is not null)
-            return new SurroundingWindowCorrection(preserved);
-
-        var resized = regions
+        var correction = regions
             .Select(region => FitInside(window.Bounds, region, preserveSize: false))
-            .OrderBy(candidate => SizeReduction(window.Bounds, candidate))
-            .ThenBy(candidate => MovementSquared(window.Bounds, candidate))
+            .OrderBy(candidate => MovementSquared(window.Bounds, candidate))
+            .ThenBy(candidate => SizeReduction(window.Bounds, candidate))
             .First();
 
-        return new SurroundingWindowCorrection(resized);
+        return new SurroundingWindowCorrection(correction);
     }
 
     private static IEnumerable<AppBounds> CandidateRegions(AppBounds applet, AppBounds workArea)
