@@ -3,10 +3,14 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Threading;
 using TerminalClockSpotify.Config;
+using TerminalClockSpotify.Input;
 using TerminalClockSpotify.Logging;
+using TerminalClockSpotify.Media;
 using TerminalClockSpotify.Placement;
+using TerminalClockSpotify.Scheduling;
 using TerminalClockSpotify.State;
 using TerminalClockSpotify.ViewModels;
 
@@ -20,10 +24,15 @@ public partial class MainWindow : Window
     private readonly RollingFileLogger _logger;
     private readonly MainViewModel _viewModel;
     private readonly CancellationTokenSource _shutdown = new();
-    private DispatcherTimer? _clockTimer;
+    private readonly SerializedMediaPollCoordinator _mediaPollCoordinator;
+    private readonly Stopwatch _lightweightElapsed = new();
+    private LightweightUpdateScheduler? _lightweightScheduler;
+    private DispatcherTimer? _lightweightTimer;
     private DispatcherTimer? _mediaTimer;
     private bool _isDragging;
+    private bool _isAlbumArtPressed;
     private System.Windows.Point _dragOffset;
+    private System.Windows.Point _albumArtPressPoint;
 
     public MainWindow(
         AppConfig config,
@@ -37,15 +46,12 @@ public partial class MainWindow : Window
         _stateStore = stateStore;
         _logger = logger;
         _viewModel = viewModel;
+        _mediaPollCoordinator = new SerializedMediaPollCoordinator(RefreshMediaCoreAsync);
 
         InitializeComponent();
 
         DataContext = _viewModel;
-        Topmost = _config.AlwaysOnTop;
-        Opacity = _config.Opacity;
-        Width = _config.FixedWindowWidth ?? 1200;
-        Height = _config.FixedWindowHeight ?? 260;
-        AlwaysOnTopMenuItem.IsChecked = Topmost;
+        ApplyVisualSettings();
 
         SourceInitialized += (_, _) => ApplyWindowStyles();
         Loaded += (_, _) =>
@@ -53,7 +59,11 @@ public partial class MainWindow : Window
             ApplyInitialPlacement();
             StartTimers();
         };
-        Closed += (_, _) => _shutdown.Cancel();
+        Closed += (_, _) =>
+        {
+            StopTimers();
+            _shutdown.Cancel();
+        };
         ProgressTrack.SizeChanged += (_, _) => _viewModel.SetProgressTrackWidth(ProgressTrack.ActualWidth);
 
         MouseLeftButtonDown += MainWindow_MouseLeftButtonDown;
@@ -63,20 +73,38 @@ public partial class MainWindow : Window
 
     private void StartTimers()
     {
+        StopTimers();
         _viewModel.RefreshClock(DateTimeOffset.Now);
+        _viewModel.RefreshProgress();
         _viewModel.SetProgressTrackWidth(ProgressTrack.ActualWidth);
-        _ = RefreshMediaAsync();
+        _ = _mediaPollCoordinator.RequestAsync();
 
-        _clockTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(_config.ClockUpdateIntervalMs) };
-        _clockTimer.Tick += (_, _) => _viewModel.RefreshClock(DateTimeOffset.Now);
-        _clockTimer.Start();
+        _lightweightScheduler = new LightweightUpdateScheduler(_config.ClockUpdateIntervalMs, _config.ProgressUpdateIntervalMs);
+        _lightweightElapsed.Restart();
+        _lightweightTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(_lightweightScheduler.TimerIntervalMs) };
+        _lightweightTimer.Tick += (_, _) =>
+        {
+            var updates = _lightweightScheduler.Tick(_lightweightElapsed.ElapsedMilliseconds);
+            if (updates.Clock)
+                _viewModel.RefreshClock(DateTimeOffset.Now);
+            if (updates.Progress)
+                _viewModel.RefreshProgress();
+        };
+        _lightweightTimer.Start();
 
         _mediaTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(_config.MediaUpdateIntervalMs) };
-        _mediaTimer.Tick += async (_, _) => await RefreshMediaAsync();
+        _mediaTimer.Tick += (_, _) => _ = _mediaPollCoordinator.RequestAsync();
         _mediaTimer.Start();
     }
 
-    private async Task RefreshMediaAsync()
+    private void StopTimers()
+    {
+        _lightweightTimer?.Stop();
+        _mediaTimer?.Stop();
+        _lightweightElapsed.Stop();
+    }
+
+    private async Task RefreshMediaCoreAsync()
     {
         try
         {
@@ -112,14 +140,27 @@ public partial class MainWindow : Window
 
     private void MainWindow_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        _isDragging = true;
-        _dragOffset = e.GetPosition(this);
-        CaptureMouse();
+        BeginDrag(e.GetPosition(this));
         e.Handled = true;
     }
 
     private void MainWindow_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
     {
+        if (_isAlbumArtPressed && e.LeftButton == MouseButtonState.Pressed)
+        {
+            var current = e.GetPosition(this);
+            var gesture = AlbumArtGestureClassifier.Classify(
+                current.X - _albumArtPressPoint.X,
+                current.Y - _albumArtPressPoint.Y,
+                SystemParameters.MinimumHorizontalDragDistance,
+                SystemParameters.MinimumVerticalDragDistance);
+            if (gesture == AlbumArtGesture.Click)
+                return;
+
+            _isAlbumArtPressed = false;
+            _isDragging = true;
+        }
+
         if (!_isDragging || e.LeftButton != MouseButtonState.Pressed)
             return;
 
@@ -130,9 +171,40 @@ public partial class MainWindow : Window
 
     private void MainWindow_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
+        if (_isAlbumArtPressed)
+        {
+            _isAlbumArtPressed = false;
+            ReleaseMouseCapture();
+            if (AlbumArtFrame.IsMouseOver)
+                _ = TogglePlayPauseAsync();
+            e.Handled = true;
+            return;
+        }
+
         if (!_isDragging)
             return;
 
+        CompleteDrag();
+    }
+
+    private void AlbumArtFrame_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        _isAlbumArtPressed = true;
+        _albumArtPressPoint = e.GetPosition(this);
+        _dragOffset = _albumArtPressPoint;
+        CaptureMouse();
+        e.Handled = true;
+    }
+
+    private void BeginDrag(System.Windows.Point offset)
+    {
+        _isDragging = true;
+        _dragOffset = offset;
+        CaptureMouse();
+    }
+
+    private void CompleteDrag()
+    {
         _isDragging = false;
         ReleaseMouseCapture();
 
@@ -145,14 +217,31 @@ public partial class MainWindow : Window
         _stateStore.Save(new PersistedAppState(snapped.DisplayDeviceName, snapped.DockPosition));
     }
 
-    private async void Refresh_Click(object sender, RoutedEventArgs e)
+    private async Task TogglePlayPauseAsync()
+    {
+        try
+        {
+            if (await _viewModel.TogglePlayPauseAsync(_shutdown.Token))
+                await _mediaPollCoordinator.RequestAsync();
+            else
+                _logger.Warn("Spotify play/pause toggle was unavailable.");
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception exception)
+        {
+            _logger.Error("Failed to toggle Spotify play/pause", exception);
+        }
+    }
+
+    private void Refresh_Click(object sender, RoutedEventArgs e)
     {
         _config = _configLoader.Load();
-        Topmost = _config.AlwaysOnTop;
-        AlwaysOnTopMenuItem.IsChecked = Topmost;
-        Opacity = _config.Opacity;
+        ApplyVisualSettings();
+        ApplyWindowStyles();
         ApplyInitialPlacement();
-        await RefreshMediaAsync();
+        StartTimers();
     }
 
     private void Config_Click(object sender, RoutedEventArgs e)
@@ -216,8 +305,37 @@ public partial class MainWindow : Window
 
         if (_config.ClickThrough)
             extendedStyle |= WsExTransparent;
+        else
+            extendedStyle &= ~WsExTransparent;
 
         SetWindowLong(hwnd, GwlExStyle, extendedStyle);
+    }
+
+    private void ApplyVisualSettings()
+    {
+        Topmost = _config.AlwaysOnTop;
+        Opacity = _config.Opacity;
+        Width = _config.FixedWindowWidth ?? 1200;
+        Height = _config.FixedWindowHeight ?? 260;
+        AlwaysOnTopMenuItem.IsChecked = Topmost;
+
+        SetBrush("BackgroundBrush", _config.Palette.Background);
+        SetBrush("PrimaryGreenBrush", _config.Palette.PrimaryGreen);
+        SetBrush("DimGreenBrush", _config.Palette.DimGreen);
+        SetBrush("SecondaryTextBrush", _config.Palette.SecondaryText);
+        SetBrush("ProgressTrackBrush", _config.Palette.ProgressTrack);
+    }
+
+    private void SetBrush(string key, string value)
+    {
+        try
+        {
+            Resources[key] = (Brush)new BrushConverter().ConvertFromString(value)!;
+        }
+        catch (Exception exception)
+        {
+            _logger.Warn($"Ignoring invalid palette color {value} for {key}: {exception.Message}");
+        }
     }
 
     private const int GwlExStyle = -20;

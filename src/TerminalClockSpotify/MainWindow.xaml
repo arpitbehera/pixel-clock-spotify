@@ -13,6 +13,13 @@
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
         RenderOptions.BitmapScalingMode="NearestNeighbor">
+  <Window.Resources>
+    <SolidColorBrush x:Key="BackgroundBrush" Color="#000000" />
+    <SolidColorBrush x:Key="PrimaryGreenBrush" Color="#9ad178" />
+    <SolidColorBrush x:Key="DimGreenBrush" Color="#5f8f4d" />
+    <SolidColorBrush x:Key="SecondaryTextBrush" Color="#d7d7d7" />
+    <SolidColorBrush x:Key="ProgressTrackBrush" Color="#4a4a4a" />
+  </Window.Resources>
   <Window.ContextMenu>
     <ContextMenu>
       <MenuItem Header="Refresh" Click="Refresh_Click" />
@@ -22,7 +29,10 @@
       <MenuItem Header="Exit" Click="Exit_Click" />
     </ContextMenu>
   </Window.ContextMenu>
-  <Border BorderBrush="#9ad178" BorderThickness="2" Background="#CC000000" Padding="18">
+  <Border BorderBrush="{DynamicResource PrimaryGreenBrush}"
+          BorderThickness="2"
+          Background="{DynamicResource BackgroundBrush}"
+          Padding="18">
     <Grid>
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="68*" />
@@ -32,14 +42,13 @@
 
       <TextBlock Grid.Column="0"
                  Text="{Binding ClockText}"
-                 Foreground="#9ad178"
-                 FontFamily="Consolas"
-                 FontSize="118"
-                 FontWeight="Bold"
+                 Foreground="{DynamicResource PrimaryGreenBrush}"
+                 FontFamily="./Assets/Fonts/#Press Start 2P, Consolas"
+                 FontSize="150"
                  HorizontalAlignment="Center"
                  VerticalAlignment="Center" />
 
-      <Rectangle Grid.Column="1" Fill="#9ad178" />
+      <Rectangle Grid.Column="1" Fill="{DynamicResource PrimaryGreenBrush}" />
 
       <Grid Grid.Column="2" Margin="22,0,0,0">
         <Grid.RowDefinitions>
@@ -48,13 +57,30 @@
           <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0"
-                   Text="{Binding Header}"
-                   Foreground="#9ad178"
-                   FontFamily="Consolas"
-                   FontSize="18"
-                   FontWeight="Bold"
-                   TextTrimming="CharacterEllipsis" />
+        <Grid Grid.Row="0">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <Rectangle Grid.Column="0"
+                     Height="2"
+                     Margin="0,0,10,0"
+                     Fill="{DynamicResource PrimaryGreenBrush}"
+                     VerticalAlignment="Center" />
+          <TextBlock Grid.Column="1"
+                     Text="{Binding Header}"
+                     Foreground="{DynamicResource PrimaryGreenBrush}"
+                     FontFamily="./Assets/Fonts/#Silkscreen, Consolas"
+                     FontSize="16"
+                     HorizontalAlignment="Center"
+                     TextTrimming="CharacterEllipsis" />
+          <Rectangle Grid.Column="2"
+                     Height="2"
+                     Margin="10,0,0,0"
+                     Fill="{DynamicResource PrimaryGreenBrush}"
+                     VerticalAlignment="Center" />
+        </Grid>
 
         <Grid Grid.Row="1" Margin="0,14,0,12">
           <Grid.ColumnDefinitions>
@@ -63,20 +89,32 @@
             <ColumnDefinition Width="*" />
           </Grid.ColumnDefinitions>
 
-          <Border Grid.Column="0"
+          <Border x:Name="AlbumArtFrame"
+                  Grid.Column="0"
                   Width="120"
                   Height="120"
-                  BorderBrush="#9ad178"
+                  BorderBrush="{DynamicResource PrimaryGreenBrush}"
                   BorderThickness="2"
-                  Background="#111111">
+                  Background="#111111"
+                  MouseLeftButtonDown="AlbumArtFrame_MouseLeftButtonDown">
             <Grid>
               <Rectangle Fill="#191919" />
-              <TextBlock Text="ALBUM"
-                         Foreground="#5f8f4d"
-                         FontFamily="Consolas"
-                         FontSize="18"
-                         HorizontalAlignment="Center"
-                         VerticalAlignment="Center" />
+              <Canvas Width="82" Height="82" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Ellipse Width="82" Height="82" Fill="{DynamicResource DimGreenBrush}" />
+                <Rectangle Canvas.Left="18" Canvas.Top="25" Width="46" Height="7" Fill="#191919" />
+                <Rectangle Canvas.Left="14" Canvas.Top="39" Width="52" Height="7" Fill="#191919" />
+                <Rectangle Canvas.Left="20" Canvas.Top="53" Width="42" Height="7" Fill="#191919" />
+                <Rectangle Canvas.Left="14" Canvas.Top="22" Width="10" Height="4" Fill="#191919" />
+                <Rectangle Canvas.Left="58" Canvas.Top="32" Width="10" Height="4" Fill="#191919" />
+                <Rectangle Canvas.Left="12" Canvas.Top="36" Width="10" Height="4" Fill="#191919" />
+                <Rectangle Canvas.Left="60" Canvas.Top="46" Width="10" Height="4" Fill="#191919" />
+                <Rectangle Canvas.Left="18" Canvas.Top="50" Width="10" Height="4" Fill="#191919" />
+                <Rectangle Canvas.Left="56" Canvas.Top="60" Width="10" Height="4" Fill="#191919" />
+              </Canvas>
+              <Image Source="{Binding ArtworkImage}"
+                     Stretch="Fill"
+                     RenderOptions.BitmapScalingMode="NearestNeighbor"
+                     SnapsToDevicePixels="True" />
             </Grid>
           </Border>
 
@@ -89,23 +127,22 @@
 
             <TextBlock Grid.Row="0"
                        Text="{Binding Title}"
-                       Foreground="#d7d7d7"
-                       FontFamily="Consolas"
-                       FontSize="28"
-                       FontWeight="Bold"
+                       Foreground="{DynamicResource SecondaryTextBrush}"
+                       FontFamily="./Assets/Fonts/#Silkscreen, Consolas"
+                       FontSize="23"
                        TextTrimming="CharacterEllipsis" />
             <TextBlock Grid.Row="1"
                        Text="{Binding Artist}"
-                       Foreground="#9ad178"
-                       FontFamily="Consolas"
-                       FontSize="21"
+                       Foreground="{DynamicResource PrimaryGreenBrush}"
+                       FontFamily="./Assets/Fonts/#Silkscreen, Consolas"
+                       FontSize="18"
                        Margin="0,8,0,0"
                        TextTrimming="CharacterEllipsis" />
             <TextBlock Grid.Row="2"
                        Text="{Binding Album}"
-                       Foreground="#5f8f4d"
-                       FontFamily="Consolas"
-                       FontSize="18"
+                       Foreground="{DynamicResource DimGreenBrush}"
+                       FontFamily="./Assets/Fonts/#Silkscreen, Consolas"
+                       FontSize="16"
                        Margin="0,6,0,0"
                        TextTrimming="CharacterEllipsis" />
           </Grid>
@@ -117,22 +154,22 @@
             <RowDefinition Height="Auto" />
           </Grid.RowDefinitions>
 
-          <Grid x:Name="ProgressTrack" Grid.Row="0" Background="#4a4a4a" ClipToBounds="True">
+          <Grid x:Name="ProgressTrack" Grid.Row="0" Background="{DynamicResource ProgressTrackBrush}" ClipToBounds="True">
             <Rectangle HorizontalAlignment="Left"
-                       Fill="#9ad178"
+                       Fill="{DynamicResource PrimaryGreenBrush}"
                        Width="{Binding ProgressPixelWidth}" />
           </Grid>
 
           <Grid Grid.Row="1" Margin="0,8,0,0">
             <TextBlock Text="{Binding ElapsedText}"
-                       Foreground="#d7d7d7"
-                       FontFamily="Consolas"
-                       FontSize="16"
+                       Foreground="{DynamicResource SecondaryTextBrush}"
+                       FontFamily="./Assets/Fonts/#Silkscreen, Consolas"
+                       FontSize="14"
                        HorizontalAlignment="Left" />
             <TextBlock Text="{Binding DurationText}"
-                       Foreground="#d7d7d7"
-                       FontFamily="Consolas"
-                       FontSize="16"
+                       Foreground="{DynamicResource SecondaryTextBrush}"
+                       FontFamily="./Assets/Fonts/#Silkscreen, Consolas"
+                       FontSize="14"
                        HorizontalAlignment="Right" />
           </Grid>
         </Grid>

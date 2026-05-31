@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <Content Include="appsettings.default.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\Fonts\*-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
     <Resource Include="Assets\Fonts\*.ttf" />
   </ItemGroup>
 
