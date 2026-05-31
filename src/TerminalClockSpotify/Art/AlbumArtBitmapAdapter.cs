@@ -43,7 +43,8 @@ public sealed class AlbumArtBitmapAdapter : IArtworkImageProvider
                     sourceBytes[offset + 3]);
             }
 
-            var pixelated = PixelArtRenderer.Downsample(new BgraImage(source.PixelWidth, source.PixelHeight, pixels), 32, 32);
+            var cropped = PixelArtRenderer.CropBottom(new BgraImage(source.PixelWidth, source.PixelHeight, pixels), 0.15);
+            var pixelated = PixelArtRenderer.Downsample(cropped, 32, 32);
             var renderedBytes = new byte[32 * 32 * 4];
             for (var index = 0; index < pixelated.Pixels.Count; index++)
             {

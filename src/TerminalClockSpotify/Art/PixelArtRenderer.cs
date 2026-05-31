@@ -9,6 +9,18 @@ public sealed record BgraImage(int Width, int Height, IReadOnlyList<Bgra32> Pixe
 
 public static class PixelArtRenderer
 {
+    public static BgraImage CropBottom(BgraImage source, double heightRatio)
+    {
+        if (heightRatio <= 0)
+            return source;
+
+        var removedRows = (int)Math.Round(source.Height * heightRatio, MidpointRounding.AwayFromZero);
+        var targetHeight = Math.Max(1, source.Height - removedRows);
+        var pixels = source.Pixels.Take(source.Width * targetHeight).ToArray();
+
+        return new BgraImage(source.Width, targetHeight, pixels);
+    }
+
     public static BgraImage Downsample(BgraImage source, int targetWidth, int targetHeight)
     {
         var pixels = new List<Bgra32>(targetWidth * targetHeight);

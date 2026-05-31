@@ -27,4 +27,42 @@ public sealed class PixelArtRendererTests
 
         Assert.All(result.Pixels, pixel => Assert.Equal(new Bgra32(10, 20, 30, 255), pixel));
     }
+
+    [Fact]
+    public void CropBottomRemovesBottomRows()
+    {
+        var image = new BgraImage(2, 4, [
+            new Bgra32(1, 0, 0, 255), new Bgra32(2, 0, 0, 255),
+            new Bgra32(3, 0, 0, 255), new Bgra32(4, 0, 0, 255),
+            new Bgra32(5, 0, 0, 255), new Bgra32(6, 0, 0, 255),
+            new Bgra32(7, 0, 0, 255), new Bgra32(8, 0, 0, 255),
+        ]);
+
+        var result = PixelArtRenderer.CropBottom(image, 0.25);
+
+        Assert.Equal(2, result.Width);
+        Assert.Equal(3, result.Height);
+        Assert.Equal([
+            new Bgra32(1, 0, 0, 255), new Bgra32(2, 0, 0, 255),
+            new Bgra32(3, 0, 0, 255), new Bgra32(4, 0, 0, 255),
+            new Bgra32(5, 0, 0, 255), new Bgra32(6, 0, 0, 255),
+        ], result.Pixels);
+    }
+
+    [Fact]
+    public void CropBottomLeavesAtLeastOneRow()
+    {
+        var image = new BgraImage(2, 2, [
+            new Bgra32(1, 0, 0, 255), new Bgra32(2, 0, 0, 255),
+            new Bgra32(3, 0, 0, 255), new Bgra32(4, 0, 0, 255),
+        ]);
+
+        var result = PixelArtRenderer.CropBottom(image, 1);
+
+        Assert.Equal(2, result.Width);
+        Assert.Equal(1, result.Height);
+        Assert.Equal([
+            new Bgra32(1, 0, 0, 255), new Bgra32(2, 0, 0, 255),
+        ], result.Pixels);
+    }
 }
