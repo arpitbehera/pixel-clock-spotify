@@ -2,7 +2,10 @@
 
 ## Goal
 
-Make the ambient applet update visibly once per second without polling Windows media sessions every second, and bring the UI closer to `docs/ref/TUI_reference.png`.
+Make the ambient applet update visibly once per second without polling Windows
+media sessions every second, render recognizable pixelated album art, support
+album-art click play/pause control, and bring the UI closer to
+`docs/ref/TUI_reference.png`.
 
 ## Current Behavior
 
@@ -19,6 +22,12 @@ while an earlier refresh is still running.
 The current UI uses `Consolas` throughout. The left clock uses a fixed `118`
 font size, leaving more unused space than the reference. The right panel uses a
 plain left-aligned header without the horizontal lines shown in the reference.
+
+The Windows media-session probe can detect thumbnail availability, but the
+production media adapter always returns `ThumbnailBytes = null`. The pure
+pixel-art renderer is not connected to WPF, and the XAML album-art frame is a
+static placeholder. The whole applet currently participates in window dragging,
+so album-art play/pause control needs an explicit click-versus-drag rule.
 
 ## Timing Design
 
@@ -100,6 +109,48 @@ rows, progress bar, elapsed label, and duration label.
 Keep pixel-aligned geometry, sharp corners, nearest-neighbor bitmap scaling,
 and ellipsis trimming for long metadata.
 
+## Album Art Design
+
+Read thumbnail bytes from the selected Windows media session when artwork is
+available. Decode them into a pixel buffer, downsample to a fixed `32x32` grid,
+and convert the pixelated result into a WPF-bindable bitmap. Render the bitmap
+at the album-art frame size using nearest-neighbor scaling.
+
+Use a hash of the thumbnail bytes as artwork identity. Render artwork only when
+the hash changes. Cache the last hash and WPF-bindable pixelated bitmap so
+normal five-second media polls and one-second visible ticks reuse the existing
+image.
+
+When a thumbnail is missing or decoding fails:
+
+- clear any previously displayed artwork and show the existing album-art
+  placeholder
+- log the failure quietly
+- continue updating metadata and playback progress
+
+## Album-Art Playback Control
+
+Expose a media-session operation that selects the current Spotify session at
+action time and toggles play/pause using the local Windows media-session API.
+Return whether the toggle succeeded.
+
+The album-art frame recognizes two gestures:
+
+- a short press and release within a small movement threshold toggles
+  play/pause
+- movement beyond the threshold becomes the existing applet drag interaction
+
+Use WPF's system drag-distance thresholds so the gesture matches normal Windows
+pointer behavior.
+
+After a successful toggle, request a media poll immediately so playback kind
+and the local playback-progress baseline resynchronize without waiting for the
+next five-second poll. Poll execution remains serialized: if a poll is already
+active, run one follow-up poll after it completes rather than overlapping it.
+
+When no controllable Spotify session is available, clicking the album-art
+placeholder does nothing and logs the failure quietly.
+
 ## Configuration
 
 Add:
@@ -126,10 +177,18 @@ calculation to the testable view-model layer.
 - `AppConfig` and `ConfigLoader`: expose and validate the new progress interval
   and updated media default.
 - `MainViewModel`: retain the latest media baseline and calculate visible
-  progress from an injected or supplied timestamp.
-- `MainWindow`: run lightweight UI timers separately from a guarded media poll.
-- `MainWindow.xaml`: use packaged fonts, enlarge the clock, and add header
-  lines.
+  progress from an injected or supplied timestamp; retain current rendered
+  artwork or the placeholder state.
+- `WindowsMediaSessionService`: return selected-session thumbnail bytes and
+  expose local play/pause toggling.
+- `PixelArtRenderer`: keep pure pixel-array downsample/upscale logic.
+- Windows-only album-art bitmap adapter: decode thumbnail bytes, hash artwork,
+  reuse the cached rendered bitmap, and convert the pure renderer output into a
+  WPF-bindable bitmap.
+- `MainWindow`: run lightweight UI timers separately from a guarded media poll
+  and classify album-art pointer input as click or drag.
+- `MainWindow.xaml`: bind the artwork image, use packaged fonts, enlarge the
+  clock, and add header lines.
 
 ## Error Handling
 
@@ -139,6 +198,8 @@ calculation to the testable view-model layer.
 - Preserve paused, stopped, and unknown positions until the next successful
   media snapshot.
 - Fall back to `Consolas` if a packaged font cannot load.
+- Preserve the placeholder when artwork is missing or cannot be decoded.
+- Ignore unavailable-session album-art clicks and log them quietly.
 
 ## Testing
 
@@ -151,6 +212,14 @@ Automated tests cover:
 - paused, stopped, and unknown progress do not advance
 - visible progress clamps to duration
 - a later media snapshot resynchronizes the local baseline
+- selected-session thumbnail bytes propagate to the view model
+- artwork is downsampled to `32x32` and upscaled with nearest-neighbor sampling
+- unchanged artwork reuses the cached rendered bitmap
+- missing or invalid artwork preserves the placeholder
+- play/pause control delegates to the selected Windows media session
+- play/pause control returns quietly when no controllable session is available
+- album-art input below the movement threshold classifies as a click
+- album-art input beyond the movement threshold classifies as a drag
 
 Manual Windows verification covers:
 
@@ -161,10 +230,13 @@ Manual Windows verification covers:
 - block clock digits fill the available left-panel height without clipping
 - metadata uses the readable pixel font
 - the media header is centered between horizontal green lines
+- real Spotify artwork appears as a recognizable pixelated `32x32` rendering
+- a short album-art click toggles Spotify play/pause
+- dragging from the album-art frame still moves and snaps the applet
+- clicking the placeholder with no Spotify session has no visible effect
 
 ## Out Of Scope
 
 - Event-driven Windows media-session subscriptions
 - Spotify Web API integration
-- Album-art decoding or thumbnail rendering changes
 - Layout changes beyond typography, clock sizing, and header treatment
