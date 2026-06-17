@@ -6,7 +6,7 @@ The applet updates its clock and locally extrapolated playback progress once per
 
 ## Preview
 
-![Terminal Clock Spotify applet showing a pixel clock reading 15:06 and the now-playing track "Metric Rules" by Spinall](docs/ref/applet-preview.png)
+![Terminal Clock Spotify applet showing a pixel clock reading 15:06 and the now-playing track "Metric Rules" by Spinall](docs/screenshots/applet-preview.png)
 
 ## Build
 
