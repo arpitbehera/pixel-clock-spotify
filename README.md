@@ -4,6 +4,10 @@ Windows 10 WPF Ambient Desktop Applet showing a pixel-terminal clock and local S
 
 The applet updates its clock and locally extrapolated playback progress once per second while polling Windows media sessions every five seconds by default. Spotify artwork is rendered as cached `32x32` pixel art. When click-through mode is disabled, a short album-art click toggles play/pause, an album-art drag moves the applet, and nearby top-level application windows are moved beside or below the docked applet instead of overlapping it.
 
+## Preview
+
+![Terminal Clock Spotify applet showing a pixel clock reading 15:06 and the now-playing track "Metric Rules" by Spinall](docs/ref/applet-preview.png)
+
 ## Build
 
 ```powershell
