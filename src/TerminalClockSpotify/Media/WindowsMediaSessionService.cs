@@ -7,6 +7,7 @@ namespace TerminalClockSpotify.Media;
 public sealed class WindowsMediaSessionService(RollingFileLogger logger) : IMediaSessionService
 {
     private readonly HashSet<string> _loggedThumbnailReadFailures = [];
+    private GlobalSystemMediaTransportControlsSessionManager? _manager;
 
     public async Task<NowPlayingState> GetNowPlayingAsync(IReadOnlyList<string> spotifyTokens, CancellationToken cancellationToken)
     {
@@ -44,11 +45,15 @@ public sealed class WindowsMediaSessionService(RollingFileLogger logger) : IMedi
         return selected is not null && await selected.Value.Session.TryTogglePlayPauseAsync();
     }
 
-    private static async Task<(GlobalSystemMediaTransportControlsSession Session, MediaPlaybackKind PlaybackKind)?> SelectSessionAsync(
+    private async Task<(GlobalSystemMediaTransportControlsSession Session, MediaPlaybackKind PlaybackKind)?> SelectSessionAsync(
         IReadOnlyList<string> spotifyTokens,
         CancellationToken cancellationToken)
     {
-        var manager = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync();
+        // Request the session manager once and reuse it. Calling RequestAsync on every
+        // poll leaks WinRT manager objects and their system session-change subscriptions,
+        // driving the slow RAM climb over long runs. Polls are serialized upstream
+        // (SerializedMediaPollCoordinator), so lazy init needs no extra locking.
+        var manager = _manager ??= await GlobalSystemMediaTransportControlsSessionManager.RequestAsync();
         cancellationToken.ThrowIfCancellationRequested();
 
         var managerSessions = manager.GetSessions().ToArray();

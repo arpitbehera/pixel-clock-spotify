@@ -13,8 +13,6 @@ public sealed class SurroundingWindowLayoutService : IDisposable
     private readonly DispatcherTimer _coalesceTimer;
     private readonly WinEventDelegate _winEventDelegate;
     private readonly CoalescingWindowQueue<IntPtr> _pendingWindows = new();
-    private readonly HashSet<IntPtr> _movingWindows = [];
-    private readonly Dictionary<IntPtr, DateTimeOffset> _selfInducedMoves = [];
     private readonly List<IntPtr> _hooks = [];
     private bool _enabled;
 
@@ -54,8 +52,12 @@ public sealed class SurroundingWindowLayoutService : IDisposable
         if (_hooks.Count > 0)
             return;
 
-        AddHook(EventSystemMoveSizeStart, EventSystemMinimizeEnd);
-        AddHook(EventObjectShow, EventObjectLocationChange);
+        // Hook only the settled-window events (move/size end, restore, show) as tight
+        // single-event ranges. We deliberately do NOT hook EVENT_OBJECT_LOCATIONCHANGE:
+        // system-wide it is a firehose that floods the dispatcher and grows CPU/RAM
+        // without bound. See SurroundingWindowEventPolicy.
+        foreach (var triggerEvent in SurroundingWindowEventPolicy.TriggerEvents)
+            AddHook(triggerEvent, triggerEvent);
     }
 
     private void AddHook(uint eventMinimum, uint eventMaximum)
@@ -80,9 +82,7 @@ public sealed class SurroundingWindowLayoutService : IDisposable
             UnhookWinEvent(hook);
 
         _hooks.Clear();
-        _movingWindows.Clear();
         _pendingWindows.Drain();
-        _selfInducedMoves.Clear();
         _coalesceTimer.Stop();
     }
 
@@ -95,25 +95,17 @@ public sealed class SurroundingWindowLayoutService : IDisposable
         uint eventThread,
         uint eventTime)
     {
-        if (hwnd == IntPtr.Zero || (eventType >= EventObjectShow && objectId != ObjIdWindow))
+        if (hwnd == IntPtr.Zero || (eventType >= SurroundingWindowEventPolicy.EventObjectShow && objectId != ObjIdWindow))
+            return;
+
+        // Filter on the hook thread before touching the dispatcher so noise events never
+        // allocate a queued operation.
+        if (SurroundingWindowEventPolicy.Classify(eventType) != SurroundingWindowEventAction.Enforce)
             return;
 
         _dispatcher.BeginInvoke(() =>
         {
             if (!_enabled)
-                return;
-
-            if (eventType == EventSystemMoveSizeStart)
-            {
-                _movingWindows.Add(hwnd);
-                return;
-            }
-
-            if (eventType == EventSystemMoveSizeEnd)
-                _movingWindows.Remove(hwnd);
-            else if (eventType == EventObjectLocationChange && _movingWindows.Contains(hwnd))
-                return;
-            else if (eventType is not EventSystemMinimizeEnd and not EventObjectShow and not EventObjectLocationChange)
                 return;
 
             QueueWindow(hwnd);
@@ -125,12 +117,9 @@ public sealed class SurroundingWindowLayoutService : IDisposable
         if (!_enabled)
             return;
 
-        if (_selfInducedMoves.Remove(hwnd, out var movedAt)
-            && DateTimeOffset.UtcNow - movedAt < TimeSpan.FromSeconds(1))
-        {
-            return;
-        }
-
+        // SetWindowPos (our only window mutation) does not raise any of the hooked
+        // trigger events, so enforcement cannot re-trigger itself. No self-move
+        // suppression bookkeeping is needed.
         _pendingWindows.Enqueue(hwnd);
         if (!_coalesceTimer.IsEnabled)
             _coalesceTimer.Start();
@@ -176,7 +165,6 @@ public sealed class SurroundingWindowLayoutService : IDisposable
                 return;
 
             var bounds = correction.Bounds;
-            _selfInducedMoves[hwnd] = DateTimeOffset.UtcNow;
             SetWindowPos(
                 hwnd,
                 IntPtr.Zero,
@@ -258,11 +246,6 @@ public sealed class SurroundingWindowLayoutService : IDisposable
         return monitor != IntPtr.Zero && GetMonitorInfo(monitor, ref info);
     }
 
-    private const uint EventSystemMoveSizeStart = 0x000A;
-    private const uint EventSystemMoveSizeEnd = 0x000B;
-    private const uint EventSystemMinimizeEnd = 0x0017;
-    private const uint EventObjectShow = 0x8002;
-    private const uint EventObjectLocationChange = 0x800B;
     private const int ObjIdWindow = 0;
     private const uint WinEventOutOfContext = 0x0000;
     private const uint WinEventSkipOwnProcess = 0x0002;
