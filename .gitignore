@@ -5,3 +5,10 @@ obj/
 *.user
 *.suo
 *:Zone.Identifier
+
+# profiling artifacts
+soak.csv
+*.nettrace
+
+# internal planning/design docs
+docs/superpowers/
